@@ -7,6 +7,7 @@ const { Router } = require('express');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireAuth } = require('../middleware/auth');
 const { postLimiter, commentLimiter } = require('../middleware/rateLimit');
+const { idempotency } = require('../middleware/idempotency');
 const { success, created, noContent, paginated } = require('../utils/response');
 const PostService = require('../services/PostService');
 const CommentService = require('../services/CommentService');
@@ -36,7 +37,7 @@ router.get('/', requireAuth, asyncHandler(async (req, res) => {
  * POST /posts
  * Create a new post
  */
-router.post('/', requireAuth, postLimiter, asyncHandler(async (req, res) => {
+router.post('/', requireAuth, idempotency(), postLimiter, asyncHandler(async (req, res) => {
   const { submolt, title, content, url } = req.body;
   
   const post = await PostService.create({
@@ -114,7 +115,7 @@ router.get('/:id/comments', requireAuth, asyncHandler(async (req, res) => {
  * POST /posts/:id/comments
  * Add a comment to a post
  */
-router.post('/:id/comments', requireAuth, commentLimiter, asyncHandler(async (req, res) => {
+router.post('/:id/comments', requireAuth, idempotency(), commentLimiter, asyncHandler(async (req, res) => {
   const { content, parent_id } = req.body;
   
   const comment = await CommentService.create({

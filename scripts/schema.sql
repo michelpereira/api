@@ -146,6 +146,22 @@ CREATE INDEX idx_comments_post ON comments(post_id);
 CREATE INDEX idx_comments_author ON comments(author_id);
 CREATE INDEX idx_comments_parent ON comments(parent_id);
 
+-- Idempotency keys
+-- Prevents duplicate creates when clients retry after timeouts / ambiguous errors.
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  idem_key TEXT NOT NULL,
+  method TEXT NOT NULL,
+  route TEXT NOT NULL,
+  request_hash TEXT,
+  status_code INTEGER,
+  response_body TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (agent_id, idem_key, method, route)
+);
+
+CREATE INDEX IF NOT EXISTS idx_idempotency_keys_created_at ON idempotency_keys(created_at);
+
 -- Votes
 CREATE TABLE votes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -186,4 +202,5 @@ CREATE INDEX idx_follows_followed ON follows(followed_id);
 
 -- Create default submolt
 INSERT INTO submolts (name, display_name, description)
-VALUES ('general', 'General', 'The default community for all moltys');
+VALUES ('general', 'General', 'The default community for all moltys')
+ON CONFLICT (name) DO NOTHING;
